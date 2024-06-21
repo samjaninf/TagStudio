@@ -1,9 +1,9 @@
 # Copyright (C) 2024 Travis Abendshien (CyanVoxel).
 # Licensed under the GPL-3.0 License.
 # Created for TagStudio: https://github.com/CyanVoxel/TagStudio
-
-
+import logging
 from types import FunctionType
+from typing import Callable
 
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
@@ -19,9 +19,9 @@ class PanelModal(QWidget):
         widget: "PanelWidget",
         title: str,
         window_title: str,
-        done_callback: FunctionType = None,
+        done_callback: Callable = None,
         #  cancel_callback:FunctionType=None,
-        save_callback: FunctionType = None,
+        save_callback: Callable = None,
         has_save: bool = False,
     ):
         # [Done]
@@ -38,9 +38,7 @@ class PanelModal(QWidget):
         self.title_widget.setObjectName("fieldTitle")
         self.title_widget.setWordWrap(True)
         self.title_widget.setStyleSheet(
-            # 'background:blue;'
-            # 'text-align:center;'
-            "font-weight:bold;" "font-size:14px;" "padding-top: 6px" ""
+            "font-weight:bold;" "font-size:14px;" "padding-top: 6px"
         )
         self.title_widget.setText(title)
         self.title_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -70,12 +68,12 @@ class PanelModal(QWidget):
             # self.cancel_button.clicked.connect(cancel_callback)
             self.button_layout.addWidget(self.cancel_button)
 
-        if save_callback or has_save:
             self.save_button = QPushButton()
             self.save_button.setText("Save")
             self.save_button.setAutoDefault(True)
             self.save_button.clicked.connect(self.hide)
             self.save_button.clicked.connect(self.saved.emit)
+
             if done_callback:
                 self.save_button.clicked.connect(done_callback)
             if save_callback:
@@ -83,6 +81,9 @@ class PanelModal(QWidget):
                     lambda: save_callback(widget.get_content())
                 )
             self.button_layout.addWidget(self.save_button)
+
+            # trigger save button actions when pressing enter in the widget
+            self.widget.add_callback(lambda: self.save_button.click())
 
         widget.done.connect(lambda: save_callback(widget.get_content()))
 
@@ -107,3 +108,6 @@ class PanelWidget(QWidget):
 
     def reset(self):
         pass
+
+    def add_callback(self, callback: Callable, event: str = "returnPressed"):
+        logging.warning(f"add_callback not implemented for {self.__class__.__name__}")

@@ -5,36 +5,31 @@
 
 import math
 import os
-from types import FunctionType
+from types import FunctionType, MethodType
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast, Callable, Any
 
 from PIL import Image, ImageQt
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QPixmap, QEnterEvent
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from src.qt.helpers.qbutton_wrapper import QPushButtonWrapper
 
 
 class FieldContainer(QWidget):
-    # TODO: reference a resources folder rather than path.parent.parent.parent.parent?
+    # TODO: reference a resources folder rather than path.parents[3]?
     clipboard_icon_128: Image.Image = Image.open(
-        os.path.normpath(
-            f"{Path(__file__).parent.parent.parent.parent}/resources/qt/images/clipboard_icon_128.png"
-        )
+        str(Path(__file__).parents[3] / "resources/qt/images/clipboard_icon_128.png")
     ).resize((math.floor(24 * 1.25), math.floor(24 * 1.25)))
     clipboard_icon_128.load()
 
     edit_icon_128: Image.Image = Image.open(
-        os.path.normpath(
-            f"{Path(__file__).parent.parent.parent.parent}/resources/qt/images/edit_icon_128.png"
-        )
+        str(Path(__file__).parents[3] / "resources/qt/images/edit_icon_128.png")
     ).resize((math.floor(24 * 1.25), math.floor(24 * 1.25)))
     edit_icon_128.load()
 
     trash_icon_128: Image.Image = Image.open(
-        os.path.normpath(
-            f"{Path(__file__).parent.parent.parent.parent}/resources/qt/images/trash_icon_128.png"
-        )
+        str(Path(__file__).parents[3] / "resources/qt/images/trash_icon_128.png")
     ).resize((math.floor(24 * 1.25), math.floor(24 * 1.25)))
     trash_icon_128.load()
 
@@ -48,7 +43,7 @@ class FieldContainer(QWidget):
         # self.editable:bool = editable
         self.copy_callback: FunctionType = None
         self.edit_callback: FunctionType = None
-        self.remove_callback: FunctionType = None
+        self.remove_callback: Callable = None
         button_size = 24
         # self.setStyleSheet('border-style:solid;border-color:#1e1a33;border-radius:8px;border-width:2px;')
 
@@ -87,7 +82,7 @@ class FieldContainer(QWidget):
 
         self.title_layout.addStretch(2)
 
-        self.copy_button = QPushButton()
+        self.copy_button = QPushButtonWrapper()
         self.copy_button.setMinimumSize(button_size, button_size)
         self.copy_button.setMaximumSize(button_size, button_size)
         self.copy_button.setFlat(True)
@@ -98,7 +93,7 @@ class FieldContainer(QWidget):
         self.title_layout.addWidget(self.copy_button)
         self.copy_button.setHidden(True)
 
-        self.edit_button = QPushButton()
+        self.edit_button = QPushButtonWrapper()
         self.edit_button.setMinimumSize(button_size, button_size)
         self.edit_button.setMaximumSize(button_size, button_size)
         self.edit_button.setFlat(True)
@@ -107,7 +102,7 @@ class FieldContainer(QWidget):
         self.title_layout.addWidget(self.edit_button)
         self.edit_button.setHidden(True)
 
-        self.remove_button = QPushButton()
+        self.remove_button = QPushButtonWrapper()
         self.remove_button.setMinimumSize(button_size, button_size)
         self.remove_button.setMaximumSize(button_size, button_size)
         self.remove_button.setFlat(True)
@@ -129,32 +124,31 @@ class FieldContainer(QWidget):
 
         # self.set_inner_widget(mode)
 
-    def set_copy_callback(self, callback: Optional[FunctionType]):
-        try:
+    def set_copy_callback(self, callback: Optional[MethodType]):
+        if self.copy_button.is_connected:
             self.copy_button.clicked.disconnect()
-        except RuntimeError:
-            pass
 
         self.copy_callback = callback
         self.copy_button.clicked.connect(callback)
+        if callback is not None:
+            self.copy_button.is_connected = True
 
-    def set_edit_callback(self, callback: Optional[FunctionType]):
-        try:
+    def set_edit_callback(self, callback: Optional[MethodType]):
+        if self.edit_button.is_connected:
             self.edit_button.clicked.disconnect()
-        except RuntimeError:
-            pass
 
         self.edit_callback = callback
         self.edit_button.clicked.connect(callback)
+        if callback is not None:
+            self.edit_button.is_connected = True
 
-    def set_remove_callback(self, callback: Optional[FunctionType]):
-        try:
+    def set_remove_callback(self, callback: Optional[Callable]):
+        if self.remove_button.is_connected:
             self.remove_button.clicked.disconnect()
-        except RuntimeError:
-            pass
 
         self.remove_callback = callback
         self.remove_button.clicked.connect(callback)
+        self.remove_button.is_connected = True
 
     def set_inner_widget(self, widget: "FieldWidget"):
         # widget.setStyleSheet('background-color:green;')
@@ -168,7 +162,7 @@ class FieldContainer(QWidget):
 
     def get_inner_widget(self) -> Optional["FieldWidget"]:
         if self.field_layout.itemAt(0):
-            return self.field_layout.itemAt(0).widget()
+            return cast(FieldWidget, self.field_layout.itemAt(0).widget())
         return None
 
     def set_title(self, title: str):
